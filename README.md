@@ -2,11 +2,11 @@
 
 This is a first draft of a web radio Player controllable with HomeKit and Siri. See homebridge for further doku on how to use homebridge.
 
-This will simulate a radio player you can add as an accessory in your HomeKit Setup. It'll register as a light bulb until Apples Home app supports Speakers. 
+This will simulate a radio player you can add as an accessory in your HomeKit Setup. It'll register as a light bulb or switch until Apples Home app supports Speakers. 
 
 Configure your favorite radio stations by supplying the streams URL in you homebridge config. See the example config file. Add another accessory for each radio station you want to support.
 
-Changing the brightness of this accessory will change the players volume. 
+If `brightness` is set `true`, then a light bulb is created. Changing the brightness of this accessory will change the players volume. If otherwise `brightness` is set `false`, then a switch is created.
 
 Sound will be streamed to the default audio out.
 

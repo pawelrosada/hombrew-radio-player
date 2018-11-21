@@ -21,6 +21,7 @@ class RadioPlayerPlugin {
         this.log = log;
         this.name = config.name;
         this.streamUrl = config.streamUrl;
+        this.brightness = config.brightness;
 
         this.informationService = new Service.AccessoryInformation();
         this.informationService
@@ -28,14 +29,21 @@ class RadioPlayerPlugin {
             .setCharacteristic(Characteristic.Model, 'v1.0.0')
             .setCharacteristic(Characteristic.SerialNumber, '100-66-978');
 
-        this.speakerService = new Service.Lightbulb(this.name);
-        this.speakerService.getCharacteristic(Characteristic.On)
-            .on('get', this.getSwitchOnCharacteristic.bind(this))
-            .on('set', this.setSwitchOnCharacteristic.bind(this));
-        
-        this.speakerService.getCharacteristic(Characteristic.Brightness)
-            .on('get', this.getVolume.bind(this))
-            .on('set', this.setVolume.bind(this));    
+        if (this.brightness) {
+            this.speakerService = new Service.Lightbulb(this.name);
+            this.speakerService.getCharacteristic(Characteristic.On)
+                .on('get', this.getSwitchOnCharacteristic.bind(this))
+                .on('set', this.setSwitchOnCharacteristic.bind(this));
+            
+            this.speakerService.getCharacteristic(Characteristic.Brightness)
+                .on('get', this.getVolume.bind(this))
+                .on('set', this.setVolume.bind(this));
+        } else {
+            this.speakerService = new Service.Switch(this.name);
+            this.speakerService.getCharacteristic(Characteristic.On)
+                .on('get', this.getSwitchOnCharacteristic.bind(this))
+                .on('set', this.setSwitchOnCharacteristic.bind(this));
+        }
 
         this.player = new Player(this.streamUrl);
 
