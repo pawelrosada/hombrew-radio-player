@@ -1,18 +1,14 @@
-# Radio Player
+# Radio Player Plus
 
-This is a first draft of a web radio Player controllable with HomeKit and Siri. See homebridge for further doku on how to use homebridge.
+This is a web radio player controllable with HomeKit and Siri.
 
-This will simulate a radio player you can add as an accessory in your HomeKit Setup. It'll register as a light bulb or switch until Apples Home app supports Speakers. 
-
-Configure your favorite radio stations by supplying the streams URL in you homebridge config. See the example config file. Add another accessory for each radio station you want to support.
-
-If `brightness` is set `true`, then a light bulb is created. Changing the brightness of this accessory will change the players volume. If otherwise `brightness` is set `false`, then a switch is created.
+Configure your favorite radio stations by supplying the stream URLs in your homebridge config. See the below example config file.
 
 Sound will be streamed to the default audio out.
 
 ## Installation
 
-```npm install -g homebridge-radioplayer```
+```npm install -g https://github.com/francesco-kriegel/homebridge-radio-player-plus.git```
 
 ## Configuration
 
@@ -20,16 +16,26 @@ Sound will be streamed to the default audio out.
 {
     "bridge": {
         "name": "Homebridge",
-        "username": "CC:22:3D:E3:CE:30",
-        "port": 51826,
-        "pin": "031-45-154"
+        "username": "00:00:00:00:00:00",
+        "port": 00000,
+        "pin": "000-00-000"
     },
     "accessories": [
         {
-            "accessory": "RadioPlayer",
-            "name": "radioeins",
-            "streamUrl": "https://rbb-radioeins-live.sslcast.addradio.de/rbb/radioeins/live/mp3/128/stream.mp3",
-            "brightness": true
+            "accessory": "RadioPlayerPlus",
+            "name": "Web Radio",
+            "stations": [
+                {
+                    "name": "Deutschlandfunk",
+                    "streamUrl": "http://st01.dlf.de/dlf/01/128/mp3/stream.mp3"
+                },
+                {
+                    "name": "Fritz",
+                    "streamUrl": "http://rbb-fritz-live.cast.addradio.de/rbb/fritz/live/mp3/128/stream.mp3"
+                }
+            ],
+            "delay": 100,
+            "reconnectAfter": 45
         }
     ]
 }
