@@ -1,11 +1,10 @@
 {
-    "name": "homebridge-radioplayer",
-    "version": "1.0.3",
+    "name": "homebridge-radio-player-plus",
+    "version": "2.0.0",
     "description": "play radio streams and control them over homebridge",
     "main": "index.js",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1",
-        "postinstall": "npm install speaker --mpg123-backend=openal"
+        "test": "echo \"Error: no test specified\" && exit 1"
     },
     "keywords": [
         "homebridge",
@@ -15,20 +14,19 @@
         "player",
         "stream"
     ],
-    "author": "Michael Reiniger",
+    "author": "Michael Reiniger, Francesco Kriegel",
     "license": "MIT",
     "engines": {
         "node": ">=7.6.0",
-        "homebridge": ">=0.2.0"
+        "homebridge": ">=0.4.0"
     },
     "dependencies": {
-        "lame": "^1.2.4",
-        "pcm-volume": "^1.0.0",
-        "request": "^2.83.0",
-        "speaker": "^0.4.0"
+        "@suldashi/lame": "^1.2.5",
+        "request": "^2.88.2",
+        "speaker": "^0.5.1"
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/m-reiniger/homebridge-radioplayer.git"
+        "url": "https://github.com/francesco-kriegel/homebridge-radio-player-plus.git"
     }
 }

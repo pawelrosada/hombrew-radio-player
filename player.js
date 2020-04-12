@@ -1,60 +1,45 @@
 const request = require('request'),
-    lame = require('lame'),
-    Speaker = require('speaker'),
-    fs = require('fs'),
-    Volume = require("pcm-volume");
-
-// const streamURL = 'https://rbb-radioeins-live.sslcast.addradio.de/rbb/radioeins/live/mp3/128/stream.mp3';
+  lame = require('@suldashi/lame'),
+  Speaker = require('speaker');
 
 class Player {
 
-    constructor(streamURL) {
-        this.streamURL = streamURL;
-        this.playing = false;
-        this.lastVolume = 1;
-    }
+  constructor(log, reconnectAfter) {
+    this.log = log;
+    this.minReconnectAfter = Math.max(0, reconnectAfter - 300000);
+    this.maxReconnectAfter = Math.max(600000, reconnectAfter + 300000);
+    this.isPlaying = false;
+  }
 
-    isPlaying() {
-        return this.playing;
-    }
-
-    play() {
-        if (!this.playing) {
-            this.volume = new Volume();
-            this.volume.setVolume(this.lastVolume);
-            this.stream = request(this.streamURL);
-            this.stream.pipe(new lame.Decoder())
-                .pipe(this.volume)
-                .pipe(new Speaker());
-
-            this.playing = true;
-        }
-    }
-
-    stop() {
-        if (this.playing) {
+  play(streamURL) {
+    if (!this.isPlaying) {
+      this.isPlaying = true;
+      function getRandomInteger(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+      const startStream = function() {
+        this.log.info('Connecting to ' + streamURL);
+        this.stream = request(streamURL);
+        this.stream
+          .pipe(new lame.Decoder())
+          .pipe(new Speaker());
+        setTimeout(() => { 
+          if (this.isPlaying) {
             this.stream.abort();
-            this.playing = false;
-        }
+            startStream();
+          }
+        }, getRandomInteger(this.minReconnectAfter, this.maxReconnectAfter));
+      }.bind(this)
+      startStream();
     }
+  }
 
-    setVolume(value) {
-        this.lastVolume = value;
-        if(this.volume) {
-            this.volume.setVolume(value);
-        }
+  stop() {
+    if (this.isPlaying) {
+      this.stream.abort();
+      this.isPlaying = false;
     }
-
-    getVolume() {
-        return this.lastVolume;
-    }
-
-    mute() {
-        this.lastVolume = 0;
-        if(this.volume) {
-            this.volume.setVolume(0);
-        } 
-    }
+  }
 
 }
 

@@ -3,121 +3,142 @@ const Player = require('./player');
 let Service, Characteristic;
 
 module.exports = function (homebridge) {
-    Service = homebridge.hap.Service;
-    Characteristic = homebridge.hap.Characteristic;
-    homebridge.registerAccessory("homebridge-radioplayer", "RadioPlayer", RadioPlayerPlugin);
+  Service = homebridge.hap.Service;
+  Characteristic = homebridge.hap.Characteristic;
+  homebridge.registerAccessory('homebridge-radio-player-plus', 'RadioPlayerPlus', RadioPlayerPlusPlugin);
 }
 
+class RadioPlayerPlusPlugin {
 
-class RadioPlayerPlugin {
+  constructor(log, config) {
+    this.log = log;
+    this.activeStation = -1;
+    this.stations = config.stations;
+    this.delay = Number(config.delay) || 100;
+    this.reconnectAfter = Number(config.reconnectAfter) || 45;
+    this.player = new Player(this.log, this.reconnectAfter * 60000);
 
-    /**
-     * Creates an instance of RadioPlayerPlugin.
-     * @param {any} log 
-     * @param {any} config 
-     * @memberof RadioPlayerPlugin
-     */
-    constructor(log, config) {
-        this.log = log;
-        this.name = config.name;
-        this.streamUrl = config.streamUrl;
-        this.brightness = config.brightness;
+    this.informationService = new Service.AccessoryInformation();
+    this.informationService
+      .setCharacteristic(
+        Characteristic.Manufacturer,
+        'Michael Reiniger, Francesco Kriegel'
+      )
+      .setCharacteristic(
+        Characteristic.Model,
+        'v2.0.0'
+      )
+      .setCharacteristic(
+        Characteristic.SerialNumber,
+        'RadioPlayerPlus_2.0.0'
+      );
 
-        this.informationService = new Service.AccessoryInformation();
-        this.informationService
-            .setCharacteristic(Characteristic.Manufacturer, 'Michael Reiniger')
-            .setCharacteristic(Characteristic.Model, 'v1.0.0')
-            .setCharacteristic(Characteristic.SerialNumber, '100-66-978');
+    this.switchService = new Service.Switch('Next Radio Stream', 'next-radio-stream');
+    this.switchService
+      .getCharacteristic(Characteristic.On)
+      .on(
+        'set',
+        this.nextStation.bind(this)
+      )
+      .on(
+        'get',
+        this.showAlwaysOff.bind(this)
+      );
 
-        if (this.brightness) {
-            this.speakerService = new Service.Lightbulb(this.name);
-            this.speakerService.getCharacteristic(Characteristic.On)
-                .on('get', this.getSwitchOnCharacteristic.bind(this))
-                .on('set', this.setSwitchOnCharacteristic.bind(this));
-            
-            this.speakerService.getCharacteristic(Characteristic.Brightness)
-                .on('get', this.getVolume.bind(this))
-                .on('set', this.setVolume.bind(this));
-        } else {
-            this.speakerService = new Service.Switch(this.name);
-            this.speakerService.getCharacteristic(Characteristic.On)
-                .on('get', this.getSwitchOnCharacteristic.bind(this))
-                .on('set', this.setSwitchOnCharacteristic.bind(this));
-        }
+    this.services = [this.informationService, this.switchService];
+    this.stationServices = [];
 
-        this.player = new Player(this.streamUrl);
-
-        this.shutdownTimer = 0;
+    for (var n in this.stations) {
+      const station = this.stations[n];
+      const stationService = new Service.Switch(station.name, 'radio-stream-' + n);
+      stationService
+        .getCharacteristic(Characteristic.On)
+        .on(
+          'set',
+          this.controlStation.bind(this, Number(n))
+        )
+        .on(
+          'get',
+          this.isPlaying.bind(this, Number(n))
+        );
+      this.services.push(stationService);
+      this.stationServices.push(stationService);
     }
 
-    /**
-     * 
-     * 
-     * @returns 
-     * @memberof RadioPlayerPlugin
-     */
-    getServices() {
-        return [this.informationService, this.speakerService];
-    }
+  }
 
-    /**
-     * 
-     * 
-     * @param {any} next 
-     * @returns 
-     * @memberof RadioPlayerPlugin
-     */
-    getSwitchOnCharacteristic(next) {
-        const currentState = this.player.isPlaying();
-        return next(null, currentState);
-    }
+  getServices() {
+    return this.services;
+  }
 
-    /**
-     * 
-     * 
-     * @param {any} on 
-     * @param {any} next 
-     * @returns 
-     * @memberof RadioPlayerPlugin
-     */
-    setSwitchOnCharacteristic(on, next) {
-        // set player state here
-        if (on) {
-            if (new Date().getTime() - this.shutdownTimer > 3000 && !this.player.isPlaying()) {
-                this.log.info('Turning ' + this.name + ' on');
-                this.player.play();
-            }
-        } else {
-            this.log.info('Turning ' + this.name + ' off');
-            this.shutdownTimer = new Date().getTime();
-            this.player.stop();
-        }
-        return next();
+  play() {
+    if (this.activeStation != -1) {
+      const station = this.stations[this.activeStation];
+      this.log.info('Starting web radio "' + station.name + '" (' + station.streamUrl + ')');
+      this.player.play(station.streamUrl);
+      this.stationServices[this.activeStation].getCharacteristic(Characteristic.On).updateValue(true);
     }
+  }
 
-    /**
-     * 
-     * 
-     * @param {any} next 
-     * @returns 
-     * @memberof RadioPlayerPlugin
-     */
-    getVolume(next) {
-        const volume = this.player.getVolume() * 100;
-        return next(null, volume);
+  stop() {
+    if (this.activeStation != -1) {
+      const station = this.stations[this.activeStation];
+      this.log.info('Stopping web radio "' + station.name + '" (' + station.streamUrl + ')');
     }
+    this.player.stop();
+    for (var n in this.stations) {
+      this.stationServices[n].getCharacteristic(Characteristic.On).updateValue(false);
+    }
+  }
 
-    /**
-     * 
-     * 
-     * @param {any} volume 
-     * @param {any} next 
-     * @returns 
-     * @memberof RadioPlayerPlugin
-     */
-    setVolume(volume, next) {
-        this.log('Setting ' + this.name + ' to ' + volume + '%');
-        this.player.setVolume(volume/100);
-        return next();
+  next() {
+    this.setActiveStation(Number(this.activeStation) + 1);
+  }
+
+  setActiveStation(n) {
+    this.activeStation = Number(n);
+    if (this.activeStation == this.stations.length) {
+      this.activeStation = Number(-1);
     }
+  }
+
+  nextStation(on, callback) {
+    if (on) {
+      this.stop();
+      this.next();
+      this.play();
+      setTimeout(function() {
+        this.switchService.getCharacteristic(Characteristic.On).updateValue(false)
+        this.log.debug('Set state of switch to off')
+      }.bind(this), this.delay)
+    }
+    return callback();
+  }
+
+  showAlwaysOff(callback) {
+    callback(null, false);
+  }
+
+  controlStation(n, on, callback) {
+    if (on) {
+      this.stop();
+      this.setActiveStation(n);
+      this.play();
+    } else {
+      this.stop();
+      this.setActiveStation(-1);
+    }
+    return callback();
+  }
+
+  isPlaying(n, callback) {
+    if (this.activeStation == -1) {
+      return callback(null, false);
+    } else if (this.activeStation == n) {
+      return callback(null, this.player.isPlaying);
+    } else {
+      return callback(null, false);
+    }
+  }
+
 }
