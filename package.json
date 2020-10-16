@@ -21,7 +21,7 @@
         "homebridge": ">=0.4.0"
     },
     "dependencies": {
-        "@suldashi/lame": "^1.2.5",
+        "lame": "esgie/node-lame",
         "request": "^2.88.2",
         "speaker": "^0.5.1"
     },
