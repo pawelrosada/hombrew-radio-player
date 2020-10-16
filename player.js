@@ -1,5 +1,5 @@
 const request = require('request'),
-  lame = require('@suldashi/lame'),
+  lame = require('lame'),
   Speaker = require('speaker');
 
 class Player {
