@@ -85,7 +85,9 @@ class Player {
   status(streamUrl) {
     try {
       request.get({ url: 'http://192.168.1.35:3689/api/queue' }, function (error, response, body) {
-        if (JSON.parse(body).items.length = 0) {
+        this.log.info('StatusRequest: Length' + JSON.parse(body).items.length);
+
+        if (JSON.parse(body).items.length == 0) {
           this.log.info('StatusRequest: empty response from http://192.168.1.35:3689/api/queue');
           request.post({
             headers: { 'content-type': 'application/json' }
