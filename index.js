@@ -33,17 +33,17 @@ class RadioPlayerPlusPlugin {
         'RadioPlayerPlus_2.0.0'
       );
 
-    this.switchService = new Service.Switch('Next Radio Stream', 'next-radio-stream');
-    this.switchService
-      .getCharacteristic(Characteristic.On)
-      .on(
-        'set',
-        this.nextStation.bind(this)
-      )
-      .on(
-        'get',
-        this.showAlwaysOff.bind(this)
-      );
+    //    this.switchService = new Service.Switch('Next Radio Stream', 'next-radio-stream');
+    //    this.switchService
+    //      .getCharacteristic(Characteristic.On)
+    //      .on(
+    //        'set',
+    //        this.nextStation.bind(this)
+    //      )
+    //      .on(
+    //        'get',
+    //        this.showAlwaysOff.bind(this)
+    //      );
 
     this.services = [this.informationService, this.switchService];
     this.stationServices = [];
@@ -71,11 +71,21 @@ class RadioPlayerPlusPlugin {
     return this.services;
   }
 
+  sleep(millis) {
+    return new Promise(resolve => setTimeout(resolve, millis));
+  }
+
   play() {
     if (this.activeStation != -1) {
       const station = this.stations[this.activeStation];
       this.log.info('Starting web radio "' + station.name + '" (' + station.streamUrl + ')');
+      const oldValue = this.player.isPlaying;
+      if (this.player.isPlaying) {
+        this.player.stop();
+      }
+
       this.player.play(station.streamUrl);
+      this.player.startPlay();
       this.stationServices[this.activeStation].getCharacteristic(Characteristic.On).updateValue(true);
     }
   }
@@ -96,6 +106,7 @@ class RadioPlayerPlusPlugin {
   }
 
   setActiveStation(n) {
+    this.log.info('setActiveStation: ' + Number(n) + 'value: ' + this.stations.length);
     this.activeStation = Number(n);
     if (this.activeStation == this.stations.length) {
       this.activeStation = Number(-1);
@@ -107,7 +118,7 @@ class RadioPlayerPlusPlugin {
       this.stop();
       this.next();
       this.play();
-      setTimeout(function() {
+      setTimeout(function () {
         this.switchService.getCharacteristic(Characteristic.On).updateValue(false)
         this.log.debug('Set state of switch to off')
       }.bind(this), this.delay)
@@ -132,11 +143,32 @@ class RadioPlayerPlusPlugin {
   }
 
   isPlaying(n, callback) {
+    const result = this.player.status(this.stations[Number(n)].streamUrl);
+    this.log.info('isPlaying:' + this.stations[Number(n)].streamUrl + 'result: ' + result);
+
+    for (var i in this.stations) {
+      if (result) {
+        this.setActiveStation(Number(n));
+      }
+
+      if (Number(i) != Number(n) || !result) {
+        this.stationServices[Number(i)].getCharacteristic(Characteristic.On).updateValue(false);
+        this.log.info('isPlaying: turn off value ' + Number(i));
+      } else {
+        this.stationServices[Number(i)].getCharacteristic(Characteristic.On).updateValue(true);
+        this.log.info('isPlaying: turn on value ' + Number(i));
+      }
+    }
+
     if (this.activeStation == -1) {
+      this.log.info('isPlaying return false (-1)');
       return callback(null, false);
     } else if (this.activeStation == n) {
+      this.log.info('isPlaying return value: ' + this.player.isPlaying);
+      this.stationServices[this.activeStation].getCharacteristic(Characteristic.On).updateValue(true);
       return callback(null, this.player.isPlaying);
     } else {
+      this.log.info('isPlaying return false');
       return callback(null, false);
     }
   }

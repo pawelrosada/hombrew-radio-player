@@ -21,7 +21,7 @@
         "homebridge": ">=0.4.0"
     },
     "dependencies": {
-        "lame": "git+https://github.com/esgie/node-lame",
+        "lame": "file:../node-lame",
         "request": "^2.88.2",
         "speaker": "^0.5.1"
     },
